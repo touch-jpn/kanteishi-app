@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation'
 import { chapterList, getQuestionsByChapter, questions } from '@/lib/questions'
 import { getQuestionStats, getRecommendedQuestions } from '@/lib/storage'
 import { isPremiumActive, getRemainingDays } from '@/lib/premium'
+import { supabase } from '@/lib/supabase'
 import QuestionCard from '@/components/QuestionCard'
 import StudyScreen from '@/components/StudyScreen'
 import PremiumGate from '@/components/PremiumGate'
 import ReferenceView from '@/components/ReferenceView'
 import type { Question } from '@/lib/types'
+import type { User } from '@supabase/supabase-js'
 
 type Tab = 'sōron' | 'kakuron'
 type SelectionMode = 'manual' | 'auto' | 'recommended'
@@ -37,11 +39,20 @@ export default function Home() {
 
   const [isPremium, setIsPremium] = useState(false)
   const [remainingDays, setRemainingDays] = useState<number | null>(null)
+  const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
     setIsPremium(isPremiumActive())
     setRemainingDays(getRemainingDays())
   }, [studyQueue])
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setUser(session?.user ?? null)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
 
   useEffect(() => {
     const allIds = questions.filter(q => q.section === tab).map(q => q.id)
@@ -91,6 +102,7 @@ export default function Home() {
         onBack={handleStudyBack}
         queueInfo={studyQueue.length > 1 ? { current: studyIndex + 1, total: studyQueue.length } : undefined}
         isPremium={isPremium}
+        user={user}
       />
     )
   }
@@ -119,16 +131,33 @@ export default function Home() {
               <p className="text-xs text-gray-400 leading-tight">暗記アプリ</p>
             </div>
           </div>
-          <button
-            onClick={() => router.push('/premium')}
-            className={`text-xs font-bold px-3 py-1.5 rounded-full border transition-colors ${
-              isPremium
-                ? 'bg-amber-50 border-amber-300 text-amber-700'
-                : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-gray-300'
-            }`}
-          >
-            {isPremium ? `⭐ PRO · 残${remainingDays}日` : '⭐ PRO'}
-          </button>
+          <div className="flex items-center gap-2">
+            {user ? (
+              <button
+                onClick={() => supabase.auth.signOut()}
+                className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1"
+              >
+                ログアウト
+              </button>
+            ) : (
+              <button
+                onClick={() => router.push('/login?returnTo=/study')}
+                className="text-xs font-bold px-3 py-1.5 rounded-full border border-blue-200 text-blue-600 bg-blue-50"
+              >
+                ログイン
+              </button>
+            )}
+            <button
+              onClick={() => router.push('/premium')}
+              className={`text-xs font-bold px-3 py-1.5 rounded-full border transition-colors ${
+                isPremium
+                  ? 'bg-amber-50 border-amber-300 text-amber-700'
+                  : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-gray-300'
+              }`}
+            >
+              {isPremium ? `⭐ PRO · 残${remainingDays}日` : '⭐ PRO'}
+            </button>
+          </div>
         </div>
 
         {/* 総論/各論 タブ */}

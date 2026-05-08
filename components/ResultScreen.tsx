@@ -1,7 +1,11 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import type { Question } from '@/lib/types'
 import type { scoreAnswer } from '@/lib/scoring'
+import { supabase } from '@/lib/supabase'
+import type { User } from '@supabase/supabase-js'
 import MemoPanel from './MemoPanel'
 
 interface Props {
@@ -9,12 +13,35 @@ interface Props {
   result: ReturnType<typeof scoreAnswer>
   mode: 'blank' | 'free'
   isPremium: boolean
+  user: User | null
   onRetry: () => void
   onNext: () => void
 }
 
-export default function ResultScreen({ question, result, mode, isPremium, onRetry, onNext }: Props) {
+export default function ResultScreen({ question, result, mode, isPremium, user, onRetry, onNext }: Props) {
+  const router = useRouter()
   const { total, keywordScore, similarityScore, matchedKeywords, similarityRate } = result
+  const savedRef = useRef(false)
+
+  // ログイン済みなら自動でSupabaseに保存
+  useEffect(() => {
+    if (!user || savedRef.current) return
+    savedRef.current = true
+    ;(async () => {
+      const { data } = await supabase
+        .from('questions')
+        .select('id')
+        .eq('slug', question.slug)
+        .single()
+      if (data) {
+        await supabase.from('answer_logs').insert({
+          user_id:     user.id,
+          question_id: data.id,
+          is_correct:  total >= 60,
+        })
+      }
+    })()
+  }, [user, question.slug, total])
 
   const scoreColor = total >= 80 ? 'text-green-600' : total >= 60 ? 'text-yellow-500' : 'text-red-500'
   const ringColor  = total >= 80 ? 'border-green-400' : total >= 60 ? 'border-yellow-400' : 'border-red-400'
@@ -88,6 +115,19 @@ export default function ResultScreen({ question, result, mode, isPremium, onRetr
         <p className="text-xs font-bold text-blue-600 mb-2 uppercase tracking-wide">模範解答（基準）</p>
         <p className="text-sm text-gray-700 leading-[1.9] whitespace-pre-wrap">{question.answer}</p>
       </div>
+
+      {/* ログイン促進（未ログイン時） */}
+      {!user && (
+        <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          <p className="text-xs text-amber-700 font-medium">ログインして学習記録を保存できます</p>
+          <button
+            onClick={() => router.push('/login?returnTo=/study')}
+            className="text-xs font-bold text-amber-600 ml-3 flex-shrink-0"
+          >
+            ログイン →
+          </button>
+        </div>
+      )}
 
       {/* メモ（プレミアム） */}
       {isPremium && <MemoPanel questionId={question.id} />}

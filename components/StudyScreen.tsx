@@ -9,6 +9,7 @@ import BlankMode from './BlankMode'
 import FreeMode from './FreeMode'
 import ResultScreen from './ResultScreen'
 import PremiumGate from './PremiumGate'
+import type { User } from '@supabase/supabase-js'
 
 type StudyMode = 'select' | 'blank' | 'free' | 'result' | 'premium-gate'
 
@@ -17,9 +18,10 @@ interface Props {
   onBack: () => void
   queueInfo?: { current: number; total: number }
   isPremium: boolean
+  user: User | null
 }
 
-export default function StudyScreen({ question, onBack, queueInfo, isPremium }: Props) {
+export default function StudyScreen({ question, onBack, queueInfo, isPremium, user }: Props) {
   const router = useRouter()
   const [mode, setMode] = useState<StudyMode>('select')
   const [result, setResult] = useState<ReturnType<typeof scoreAnswer> | null>(null)
@@ -95,6 +97,7 @@ export default function StudyScreen({ question, onBack, queueInfo, isPremium }: 
             result={result}
             mode={activeMode}
             isPremium={isPremium}
+            user={user}
             onRetry={() => setMode('select')}
             onNext={onBack}
           />

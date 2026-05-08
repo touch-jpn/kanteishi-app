@@ -11,7 +11,8 @@
  *   SUPABASE_SERVICE_ROLE_KEY=eyJ...
  */
 
-import 'dotenv/config'
+import dotenv from 'dotenv'
+dotenv.config({ path: '.env.local' })
 import * as fs from 'fs'
 import * as path from 'path'
 import { fileURLToPath } from 'url'
