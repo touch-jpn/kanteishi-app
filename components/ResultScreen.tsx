@@ -23,24 +23,15 @@ export default function ResultScreen({ question, result, mode, isPremium, user, 
   const { total, keywordScore, similarityScore, matchedKeywords, similarityRate } = result
   const savedRef = useRef(false)
 
-  // ログイン済みなら自動でSupabaseに保存
+  // ログイン済みなら自動でSupabaseに保存（slug直接保存・questions lookup不要）
   useEffect(() => {
     if (!user || savedRef.current) return
     savedRef.current = true
-    ;(async () => {
-      const { data } = await supabase
-        .from('questions')
-        .select('id')
-        .eq('slug', question.slug)
-        .single()
-      if (data) {
-        await supabase.from('answer_logs').insert({
-          user_id:     user.id,
-          question_id: data.id,
-          is_correct:  total >= 60,
-        })
-      }
-    })()
+    supabase.from('answer_logs').insert({
+      user_id:       user.id,
+      question_slug: question.slug,
+      is_correct:    total >= 60,
+    })
   }, [user, question.slug, total])
 
   const scoreColor = total >= 80 ? 'text-green-600' : total >= 60 ? 'text-yellow-500' : 'text-red-500'

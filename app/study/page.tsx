@@ -62,7 +62,7 @@ export default function Home() {
 
     const { data: logs } = await supabase
       .from('answer_logs')
-      .select('question_id')
+      .select('question_slug')
       .eq('user_id', user.id)
       .eq('is_correct', false)
       .order('created_at', { ascending: false })
@@ -73,26 +73,14 @@ export default function Home() {
       return
     }
 
-    const questionIds = [...new Set(logs.map(l => l.question_id))]
+    // 重複除去（最近不正解の順を維持）
+    const seen = new Set<string>()
+    const uniqueSlugs = logs
+      .map(l => l.question_slug as string | null)
+      .filter((s): s is string => !!s && !seen.has(s) && (seen.add(s), true))
 
-    const { data: dbQuestions } = await supabase
-      .from('questions')
-      .select('id, slug')
-      .in('id', questionIds)
-
-    if (!dbQuestions) {
-      setWeakQuestions([])
-      setLoadingWeak(false)
-      return
-    }
-
-    const slugMap = new Map(dbQuestions.map(q => [q.id, q.slug]))
-    const matched = questionIds
-      .map(id => {
-        const slug = slugMap.get(id)
-        if (!slug) return null
-        return questions.find(q => q.slug === slug)
-      })
+    const matched = uniqueSlugs
+      .map(slug => questions.find(q => q.slug === slug))
       .filter(Boolean) as Question[]
 
     setWeakQuestions(matched)

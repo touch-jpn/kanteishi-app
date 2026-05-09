@@ -10,33 +10,21 @@ export interface LearningStats {
   correctRate: number
 }
 
+const EMPTY: LearningStats = { todayCount: 0, totalCount: 0, correctRate: 0 }
+
 export function useStats(user: User | null) {
-  const [stats, setStats] = useState<LearningStats>({ todayCount: 0, totalCount: 0, correctRate: 0 })
+  const [stats, setStats] = useState<LearningStats>(EMPTY)
 
   useEffect(() => {
-    if (!user) { setStats({ todayCount: 0, totalCount: 0, correctRate: 0 }); return }
+    if (!user) { setStats(EMPTY); return }
     ;(async () => {
-      const { data } = await supabase
-        .from('answer_logs')
-        .select('is_correct, created_at')
-        .eq('user_id', user.id)
-      if (!data || data.length === 0) return
-
-      // Use JST date (UTC+9)
-      const now = new Date()
-      const jstOffset = 9 * 60 * 60 * 1000
-      const todayJST = new Date(now.getTime() + jstOffset).toISOString().slice(0, 10)
-
-      const todayCount = data.filter(r => {
-        if (!r.created_at) return false
-        const rowJST = new Date(new Date(r.created_at).getTime() + jstOffset).toISOString().slice(0, 10)
-        return rowJST === todayJST
-      }).length
-      const totalCount = data.length
-      const correctCount = data.filter(r => r.is_correct).length
-      const correctRate = totalCount > 0 ? Math.round(correctCount / totalCount * 100) : 0
-
-      setStats({ todayCount, totalCount, correctRate })
+      const { data, error } = await supabase.rpc('get_my_stats')
+      if (error || !data) return
+      setStats({
+        todayCount:  data.today_count   ?? 0,
+        totalCount:  data.total_count   ?? 0,
+        correctRate: data.correct_rate  ?? 0,
+      })
     })()
   }, [user])
 
