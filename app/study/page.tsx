@@ -65,7 +65,7 @@ export default function Home() {
       .select('question_slug')
       .eq('user_id', user.id)
       .eq('is_correct', false)
-      .order('created_at', { ascending: false })
+      .order('answered_at', { ascending: false })
 
     if (!logs || logs.length === 0) {
       setWeakQuestions([])
