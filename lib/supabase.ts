@@ -23,4 +23,18 @@ export type AnswerLog = {
   user_id: string
   question_id: number
   is_correct: boolean
+  created_at?: string
+}
+
+export type Bookmark = {
+  id?: string
+  user_id: string
+  question_slug: string
+  created_at?: string
+}
+
+export type Profile = {
+  id: string
+  is_admin: boolean
+  created_at?: string
 }

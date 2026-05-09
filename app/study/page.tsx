@@ -1,26 +1,29 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { chapterList, getQuestionsByChapter, questions } from '@/lib/questions'
 import { getQuestionStats, getRecommendedQuestions } from '@/lib/storage'
 import { isPremiumActive, getRemainingDays } from '@/lib/premium'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/lib/hooks/useAuth'
+import { useStats } from '@/lib/hooks/useStats'
 import QuestionCard from '@/components/QuestionCard'
 import StudyScreen from '@/components/StudyScreen'
 import PremiumGate from '@/components/PremiumGate'
 import ReferenceView from '@/components/ReferenceView'
 import type { Question } from '@/lib/types'
-import type { User } from '@supabase/supabase-js'
 
 type Tab = 'sōron' | 'kakuron'
-type SelectionMode = 'manual' | 'auto' | 'recommended'
+type SelectionMode = 'manual' | 'auto' | 'recommended' | 'weak'
 type ManualSubTab = 'list' | 'reference'
 
 const AUTO_COUNTS = [10, 20, 50, 0]
 
 export default function Home() {
   const router = useRouter()
+  const { user } = useAuth()
+  const stats = useStats(user)
 
   const [tab, setTab] = useState<Tab>('sōron')
   const [selectionMode, setSelectionMode] = useState<SelectionMode>('manual')
@@ -34,12 +37,14 @@ export default function Home() {
     dueIds: string[]; weakIds: string[]; newIds: string[]
   }>({ dueIds: [], weakIds: [], newIds: [] })
 
+  const [weakQuestions, setWeakQuestions] = useState<Question[]>([])
+  const [loadingWeak, setLoadingWeak] = useState(false)
+
   const [studyQueue, setStudyQueue] = useState<Question[]>([])
   const [studyIndex, setStudyIndex] = useState(0)
 
   const [isPremium, setIsPremium] = useState(false)
   const [remainingDays, setRemainingDays] = useState<number | null>(null)
-  const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
     setIsPremium(isPremiumActive())
@@ -47,25 +52,64 @@ export default function Home() {
   }, [studyQueue])
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null))
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      setUser(session?.user ?? null)
-    })
-    return () => subscription.unsubscribe()
-  }, [])
-
-  useEffect(() => {
     const allIds = questions.filter(q => q.section === tab).map(q => q.id)
     setRecommended(getRecommendedQuestions(allIds))
   }, [tab, studyQueue])
+
+  const loadWeakQuestions = useCallback(async () => {
+    if (!user) return
+    setLoadingWeak(true)
+
+    const { data: logs } = await supabase
+      .from('answer_logs')
+      .select('question_id')
+      .eq('user_id', user.id)
+      .eq('is_correct', false)
+      .order('created_at', { ascending: false })
+
+    if (!logs || logs.length === 0) {
+      setWeakQuestions([])
+      setLoadingWeak(false)
+      return
+    }
+
+    const questionIds = [...new Set(logs.map(l => l.question_id))]
+
+    const { data: dbQuestions } = await supabase
+      .from('questions')
+      .select('id, slug')
+      .in('id', questionIds)
+
+    if (!dbQuestions) {
+      setWeakQuestions([])
+      setLoadingWeak(false)
+      return
+    }
+
+    const slugMap = new Map(dbQuestions.map(q => [q.id, q.slug]))
+    const matched = questionIds
+      .map(id => {
+        const slug = slugMap.get(id)
+        if (!slug) return null
+        return questions.find(q => q.slug === slug)
+      })
+      .filter(Boolean) as Question[]
+
+    setWeakQuestions(matched)
+    setLoadingWeak(false)
+  }, [user])
+
+  useEffect(() => {
+    if (selectionMode === 'weak') {
+      loadWeakQuestions()
+    }
+  }, [selectionMode, loadWeakQuestions])
 
   const currentChapters = chapterList.filter(c => c.section === tab)
   const chapterQuestions = getQuestionsByChapter(tab, selectedChapter)
   const currentChapterEntry = currentChapters.find(c => c.chapterNum === selectedChapter)
   const chapterKey = currentChapterEntry?.id ?? ''
   const chapterLabel = currentChapterEntry?.label ?? ''
-
-  // ── スタート ────────────────────────────────────────────
 
   function startManual(q: Question) { setStudyQueue([q]); setStudyIndex(0) }
 
@@ -87,12 +131,16 @@ export default function Home() {
     setStudyQueue(qs); setStudyIndex(0)
   }
 
+  function startWeak() {
+    if (!weakQuestions.length) return
+    setStudyQueue([...weakQuestions])
+    setStudyIndex(0)
+  }
+
   function handleStudyBack() {
     const next = studyIndex + 1
     if (next < studyQueue.length) { setStudyIndex(next) } else { setStudyQueue([]); setStudyIndex(0) }
   }
-
-  // ── 学習中 ──────────────────────────────────────────────
 
   const currentQuestion = studyQueue[studyIndex] ?? null
   if (currentQuestion) {
@@ -160,6 +208,15 @@ export default function Home() {
           </div>
         </div>
 
+        {/* 学習統計バー（ログイン時のみ） */}
+        {user && stats.totalCount > 0 && (
+          <div className="flex items-center gap-4 pb-2 text-xs text-gray-500">
+            <span>今日 <strong className="text-blue-600">{stats.todayCount}</strong> 問</span>
+            <span>累計 <strong className="text-gray-700">{stats.totalCount}</strong> 問</span>
+            <span>正答率 <strong className={stats.correctRate >= 70 ? 'text-green-600' : stats.correctRate >= 50 ? 'text-yellow-500' : 'text-red-500'}>{stats.correctRate}%</strong></span>
+          </div>
+        )}
+
         {/* 総論/各論 タブ */}
         <div className="flex">
           {(['sōron', 'kakuron'] as Tab[]).map(t => (
@@ -184,11 +241,12 @@ export default function Home() {
           { key: 'manual',      label: '問題選択', icon: '📖' },
           { key: 'auto',        label: 'ランダム', icon: '🎲' },
           { key: 'recommended', label: 'おすすめ', icon: '⭐' },
+          { key: 'weak',        label: '苦手',     icon: '🔴' },
         ] as { key: SelectionMode; label: string; icon: string }[]).map(({ key, label, icon }) => (
           <button
             key={key}
             onClick={() => setSelectionMode(key)}
-            className={`flex-1 py-2.5 text-xs font-bold transition-colors flex flex-col items-center gap-0.5 border-b-2 ${
+            className={`flex-1 py-2 text-xs font-bold transition-colors flex flex-col items-center gap-0.5 border-b-2 ${
               selectionMode === key
                 ? 'border-blue-600 text-blue-600 bg-blue-50'
                 : 'border-transparent text-gray-500'
@@ -203,7 +261,6 @@ export default function Home() {
       {/* ── 問題選択モード ── */}
       {selectionMode === 'manual' && (
         <>
-          {/* 章セレクタ */}
           <div className="bg-white border-b border-gray-100">
             <div className="flex overflow-x-auto gap-1.5 px-4 py-2.5 scrollbar-none">
               {currentChapters.map(ch => (
@@ -222,7 +279,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* 問題一覧 / 基準・留意事項 サブタブ */}
           <div className="bg-white border-b border-gray-100 flex">
             {([
               { key: 'list',      label: '問題一覧' },
@@ -389,6 +445,55 @@ export default function Home() {
                   ))}
                 </section>
               )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ── 苦手問題モード ── */}
+      {selectionMode === 'weak' && (
+        <div className="px-4 pt-5 pb-24 space-y-4">
+          {!user ? (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center space-y-3">
+              <p className="text-2xl">🔒</p>
+              <p className="font-bold text-amber-800">ログインが必要です</p>
+              <p className="text-sm text-amber-600">不正解の履歴をもとに苦手問題をまとめて復習できます</p>
+              <button
+                onClick={() => router.push('/login?returnTo=/study')}
+                className="bg-amber-500 text-white font-bold px-6 py-2.5 rounded-xl text-sm active:bg-amber-600"
+              >
+                ログイン →
+              </button>
+            </div>
+          ) : loadingWeak ? (
+            <div className="text-center py-16 text-sm text-gray-400">読み込み中...</div>
+          ) : weakQuestions.length === 0 ? (
+            <div className="text-center py-16 space-y-2">
+              <p className="text-3xl">🎉</p>
+              <p className="font-bold text-gray-700">苦手問題はありません</p>
+              <p className="text-sm text-gray-400">不正解の問題がここに表示されます</p>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-bold text-gray-700">不正解履歴あり：{weakQuestions.length}問</p>
+                <button
+                  onClick={startWeak}
+                  className="bg-red-500 text-white font-bold px-4 py-2 rounded-xl text-sm active:bg-red-600"
+                >
+                  🔴 まとめて復習
+                </button>
+              </div>
+              <div className="space-y-2">
+                {weakQuestions.map(q => (
+                  <QuestionCard
+                    key={q.id}
+                    question={q}
+                    stats={getQuestionStats(q.id)}
+                    onStart={() => startManual(q)}
+                  />
+                ))}
+              </div>
             </>
           )}
         </div>

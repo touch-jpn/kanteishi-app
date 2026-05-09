@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import type { Question } from '@/lib/types'
 import { scoreAnswer } from '@/lib/scoring'
 import { recordStudy } from '@/lib/storage'
+import { useBookmark } from '@/lib/hooks/useBookmark'
 import BlankMode from './BlankMode'
 import FreeMode from './FreeMode'
 import ResultScreen from './ResultScreen'
@@ -26,6 +27,7 @@ export default function StudyScreen({ question, onBack, queueInfo, isPremium, us
   const [mode, setMode] = useState<StudyMode>('select')
   const [result, setResult] = useState<ReturnType<typeof scoreAnswer> | null>(null)
   const [activeMode, setActiveMode] = useState<'blank' | 'free'>('blank')
+  const { bookmarked, toggle: toggleBookmark } = useBookmark(question.slug, user)
 
   const handleSubmit = useCallback(
     (userAnswer: string, m: 'blank' | 'free') => {
@@ -71,6 +73,24 @@ export default function StudyScreen({ question, onBack, queueInfo, isPremium, us
           <span className="text-xs bg-gray-100 text-gray-600 rounded-full px-2.5 py-1 flex-shrink-0 font-medium">
             {queueInfo.current} / {queueInfo.total}
           </span>
+        )}
+        {/* ブックマークボタン */}
+        {user ? (
+          <button
+            onClick={toggleBookmark}
+            className="text-xl leading-none flex-shrink-0 p-1 active:scale-90 transition-transform"
+            aria-label={bookmarked ? 'ブックマーク解除' : 'ブックマーク'}
+          >
+            {bookmarked ? '★' : '☆'}
+          </button>
+        ) : (
+          <button
+            onClick={() => router.push('/login?returnTo=/study')}
+            className="text-xl leading-none flex-shrink-0 p-1 text-gray-300"
+            aria-label="ログインしてブックマーク"
+          >
+            ☆
+          </button>
         )}
       </div>
 

@@ -59,7 +59,7 @@ export default function QuestionCard({ question, stats, onStart }: Props) {
               <p className="text-xs text-gray-300 mt-0.5">{stats.attempts}回</p>
             </>
           ) : (
-            <p className="text-xs text-gray-300">未</p>
+            <span className="text-xs font-bold bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">未</span>
           )}
         </div>
       </div>
