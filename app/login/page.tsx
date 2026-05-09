@@ -31,7 +31,11 @@ function LoginForm() {
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) {
-        setError('メールアドレスまたはパスワードが違います')
+        if (error.message === 'Email not confirmed') {
+          setError('メールアドレスが未確認です。確認メールをご確認ください。')
+        } else {
+          setError('メールアドレスまたはパスワードが違います')
+        }
       } else {
         router.push(returnTo)
       }
