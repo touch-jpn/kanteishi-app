@@ -9,19 +9,13 @@ export interface LearningStats {
   totalCount: number
   correctRate: number
   streak: number
-  goalAchieved: boolean
-  remainingToday: number
 }
-
-const DAILY_GOAL = 10
 
 const EMPTY: LearningStats = {
   todayCount: 0,
   totalCount: 0,
   correctRate: 0,
   streak: 0,
-  goalAchieved: false,
-  remainingToday: DAILY_GOAL,
 }
 
 function calcStreak(dates: string[]): number {
@@ -67,14 +61,7 @@ export function useStats(user: User | null) {
       const dates       = (data.answer_dates ?? []) as string[]
       const streak      = calcStreak(dates)
 
-      setStats({
-        todayCount,
-        totalCount,
-        correctRate,
-        streak,
-        goalAchieved:   todayCount >= DAILY_GOAL,
-        remainingToday: Math.max(0, DAILY_GOAL - todayCount),
-      })
+      setStats({ todayCount, totalCount, correctRate, streak })
     })()
   }, [user])
 

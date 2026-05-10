@@ -8,6 +8,7 @@ import { isPremiumActive, getRemainingDays } from '@/lib/premium'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useStats } from '@/lib/hooks/useStats'
+import { useDailyGoal, GOAL_OPTIONS } from '@/lib/hooks/useDailyGoal'
 import QuestionCard from '@/components/QuestionCard'
 import StudyScreen from '@/components/StudyScreen'
 import PremiumGate from '@/components/PremiumGate'
@@ -22,6 +23,9 @@ export default function Home() {
   const router = useRouter()
   const { user } = useAuth()
   const stats = useStats(user)
+  const { dailyGoal, setDailyGoal } = useDailyGoal()
+  const goalAchieved   = stats.todayCount >= dailyGoal
+  const remainingToday = Math.max(0, dailyGoal - stats.todayCount)
 
   const [tab, setTab] = useState<Tab>('sōron')
   const [selectionMode, setSelectionMode] = useState<SelectionMode>('manual')
@@ -209,22 +213,41 @@ export default function Home() {
                   🔥 {stats.streak}日連続
                 </span>
               )}
-              {stats.goalAchieved ? (
+              {goalAchieved ? (
                 <span className="text-xs font-bold text-green-600">✅ 今日の目標達成！</span>
               ) : (
                 <span className="text-xs text-gray-400">
-                  今日あと <strong className="text-blue-600">{stats.remainingToday}</strong> 問
+                  今日あと <strong className="text-blue-600">{remainingToday}</strong> 問
                 </span>
               )}
             </div>
-            {/* 累計・正答率 */}
-            <div className="flex items-center gap-3 text-xs text-gray-400">
-              <span>累計 <strong className="text-gray-600">{stats.totalCount}</strong> 問</span>
-              <span>正答率 <strong className={
-                stats.correctRate >= 70 ? 'text-green-600'
-                : stats.correctRate >= 50 ? 'text-yellow-500'
-                : 'text-red-500'
-              }>{stats.correctRate}%</strong></span>
+            {/* 目標選択 + 累計・正答率 */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-3 text-xs text-gray-400">
+                <span>累計 <strong className="text-gray-600">{stats.totalCount}</strong> 問</span>
+                <span>正答率 <strong className={
+                  stats.correctRate >= 70 ? 'text-green-600'
+                  : stats.correctRate >= 50 ? 'text-yellow-500'
+                  : 'text-red-500'
+                }>{stats.correctRate}%</strong></span>
+              </div>
+              {/* 目標選択ピル */}
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-300">目標</span>
+                {GOAL_OPTIONS.map(g => (
+                  <button
+                    key={g}
+                    onClick={() => setDailyGoal(g)}
+                    className={`text-xs w-7 py-0.5 rounded-full font-bold text-center transition-colors ${
+                      dailyGoal === g
+                        ? 'bg-blue-600 text-white'
+                        : 'text-gray-400 border border-gray-200 active:bg-gray-50'
+                    }`}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}
