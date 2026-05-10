@@ -8,9 +8,49 @@ export interface LearningStats {
   todayCount: number
   totalCount: number
   correctRate: number
+  streak: number
+  goalAchieved: boolean
+  remainingToday: number
 }
 
-const EMPTY: LearningStats = { todayCount: 0, totalCount: 0, correctRate: 0 }
+const DAILY_GOAL = 10
+
+const EMPTY: LearningStats = {
+  todayCount: 0,
+  totalCount: 0,
+  correctRate: 0,
+  streak: 0,
+  goalAchieved: false,
+  remainingToday: DAILY_GOAL,
+}
+
+function calcStreak(dates: string[]): number {
+  if (!dates.length) return 0
+  const set = new Set(dates)
+
+  // JST の今日・昨日を取得
+  const jstOffset = 9 * 60 * 60 * 1000
+  const nowJST = new Date(Date.now() + jstOffset)
+  const today = nowJST.toISOString().slice(0, 10)
+
+  const yesterdayJST = new Date(nowJST)
+  yesterdayJST.setDate(yesterdayJST.getDate() - 1)
+  const yesterday = yesterdayJST.toISOString().slice(0, 10)
+
+  // 今日回答済みならtoday起点、未回答ならyesterday起点（streak継続判定）
+  const startStr = set.has(today) ? today : set.has(yesterday) ? yesterday : null
+  if (!startStr) return 0
+
+  let streak = 0
+  const cur = new Date(startStr + 'T00:00:00Z')
+  while (true) {
+    const d = cur.toISOString().slice(0, 10)
+    if (!set.has(d)) break
+    streak++
+    cur.setDate(cur.getDate() - 1)
+  }
+  return streak
+}
 
 export function useStats(user: User | null) {
   const [stats, setStats] = useState<LearningStats>(EMPTY)
@@ -20,10 +60,20 @@ export function useStats(user: User | null) {
     ;(async () => {
       const { data, error } = await supabase.rpc('get_my_stats')
       if (error || !data) return
+
+      const todayCount  = data.today_count  ?? 0
+      const totalCount  = data.total_count  ?? 0
+      const correctRate = data.correct_rate ?? 0
+      const dates       = (data.answer_dates ?? []) as string[]
+      const streak      = calcStreak(dates)
+
       setStats({
-        todayCount:  data.today_count   ?? 0,
-        totalCount:  data.total_count   ?? 0,
-        correctRate: data.correct_rate  ?? 0,
+        todayCount,
+        totalCount,
+        correctRate,
+        streak,
+        goalAchieved:   todayCount >= DAILY_GOAL,
+        remainingToday: Math.max(0, DAILY_GOAL - todayCount),
       })
     })()
   }, [user])

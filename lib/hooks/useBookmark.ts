@@ -24,16 +24,25 @@ export function useBookmark(questionSlug: string, user: User | null) {
   async function toggle() {
     if (!user || loading) return
     setLoading(true)
-    if (bookmarked) {
-      await supabase.from('bookmarks').delete()
-        .eq('user_id', user.id)
-        .eq('question_slug', questionSlug)
-      setBookmarked(false)
-    } else {
-      await supabase.from('bookmarks').insert({ user_id: user.id, question_slug: questionSlug })
-      setBookmarked(true)
+    try {
+      if (bookmarked) {
+        const { error } = await supabase.from('bookmarks').delete()
+          .eq('user_id', user.id)
+          .eq('question_slug', questionSlug)
+        if (error) throw error
+        setBookmarked(false)
+      } else {
+        const { error } = await supabase.from('bookmarks')
+          .insert({ user_id: user.id, question_slug: questionSlug })
+        if (error) throw error
+        setBookmarked(true)
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('[bookmark] toggle failed:', msg)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   return { bookmarked, toggle, loading }

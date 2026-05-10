@@ -27,11 +27,14 @@ export default function ResultScreen({ question, result, mode, isPremium, user, 
   useEffect(() => {
     if (!user || savedRef.current) return
     savedRef.current = true
-    supabase.from('answer_logs').insert({
-      user_id:       user.id,
-      question_slug: question.slug,
-      is_correct:    total >= 60,
-    })
+    ;(async () => {
+      const { error } = await supabase.from('answer_logs').insert({
+        user_id:       user.id,
+        question_slug: question.slug,
+        is_correct:    total >= 60,
+      })
+      if (error) console.error('[answer_logs] insert failed:', error.message)
+    })()
   }, [user, question.slug, total])
 
   const scoreColor = total >= 80 ? 'text-green-600' : total >= 60 ? 'text-yellow-500' : 'text-red-500'

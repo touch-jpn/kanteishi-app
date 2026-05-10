@@ -201,10 +201,31 @@ export default function Home() {
 
         {/* 学習統計バー（ログイン時のみ） */}
         {user && stats.totalCount > 0 && (
-          <div className="flex items-center gap-4 pb-2 text-xs text-gray-500">
-            <span>今日 <strong className="text-blue-600">{stats.todayCount}</strong> 問</span>
-            <span>累計 <strong className="text-gray-700">{stats.totalCount}</strong> 問</span>
-            <span>正答率 <strong className={stats.correctRate >= 70 ? 'text-green-600' : stats.correctRate >= 50 ? 'text-yellow-500' : 'text-red-500'}>{stats.correctRate}%</strong></span>
+          <div className="pb-2 space-y-1.5">
+            {/* streak + 今日の目標 */}
+            <div className="flex items-center gap-3">
+              {stats.streak > 0 && (
+                <span className="text-xs font-bold text-orange-500">
+                  🔥 {stats.streak}日連続
+                </span>
+              )}
+              {stats.goalAchieved ? (
+                <span className="text-xs font-bold text-green-600">✅ 今日の目標達成！</span>
+              ) : (
+                <span className="text-xs text-gray-400">
+                  今日あと <strong className="text-blue-600">{stats.remainingToday}</strong> 問
+                </span>
+              )}
+            </div>
+            {/* 累計・正答率 */}
+            <div className="flex items-center gap-3 text-xs text-gray-400">
+              <span>累計 <strong className="text-gray-600">{stats.totalCount}</strong> 問</span>
+              <span>正答率 <strong className={
+                stats.correctRate >= 70 ? 'text-green-600'
+                : stats.correctRate >= 50 ? 'text-yellow-500'
+                : 'text-red-500'
+              }>{stats.correctRate}%</strong></span>
+            </div>
           </div>
         )}
 
