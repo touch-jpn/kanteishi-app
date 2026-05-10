@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 const features = [
   {
@@ -181,6 +182,22 @@ export default function LandingPage() {
           学習をはじめる →
         </button>
       </section>
+
+      {/* フッター */}
+      <footer className="border-t border-gray-100 px-5 py-6 text-center space-y-3">
+        <div className="flex justify-center gap-5 text-xs text-gray-400">
+          <Link href="/privacy" className="hover:text-gray-600 underline-offset-2 hover:underline">
+            プライバシーポリシー
+          </Link>
+          <Link href="/terms" className="hover:text-gray-600 underline-offset-2 hover:underline">
+            利用規約
+          </Link>
+          <Link href="/disclaimer" className="hover:text-gray-600 underline-offset-2 hover:underline">
+            免責事項
+          </Link>
+        </div>
+        <p className="text-xs text-gray-300">© 2025 不動産鑑定士 暗記アプリ</p>
+      </footer>
     </div>
   )
 }
