@@ -66,7 +66,9 @@ export default function StudyScreen({ question, onBack, queueInfo, isPremium, us
           </svg>
         </button>
         <div className="flex-1 min-w-0">
-          <p className="text-xs text-gray-400">{question.chapter} · No.{question.no}</p>
+          <p className="text-xs text-gray-400">
+            {question.section === 'sōron' ? '総論' : '各論'} 第{question.chapterNum}章 · No.{question.no}
+          </p>
           <p className="text-sm font-bold text-gray-800 truncate leading-tight">{question.title}</p>
         </div>
         {queueInfo && (

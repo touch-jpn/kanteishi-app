@@ -185,6 +185,26 @@ export default function LandingPage() {
 
       {/* フッター */}
       <footer className="border-t border-gray-100 px-5 py-6 text-center space-y-3">
+        {/* フィードバック */}
+        <div className="bg-blue-50 rounded-xl px-4 py-3">
+          <p className="text-xs font-bold text-blue-700 mb-2">β版へのフィードバックをお待ちしています</p>
+          <div className="flex justify-center gap-3">
+            <a
+              href="mailto:feedback@example.com?subject=【不具合報告】不動産鑑定士暗記アプリ"
+              className="text-xs text-blue-600 font-bold border border-blue-200 bg-white px-3 py-1.5 rounded-lg active:bg-blue-50"
+            >
+              🐛 不具合報告
+            </a>
+            <a
+              href="mailto:feedback@example.com?subject=【改善要望】不動産鑑定士暗記アプリ"
+              className="text-xs text-blue-600 font-bold border border-blue-200 bg-white px-3 py-1.5 rounded-lg active:bg-blue-50"
+            >
+              💡 改善要望
+            </a>
+          </div>
+        </div>
+
+        {/* 法務リンク */}
         <div className="flex justify-center gap-5 text-xs text-gray-400">
           <Link href="/privacy" className="hover:text-gray-600 underline-offset-2 hover:underline">
             プライバシーポリシー

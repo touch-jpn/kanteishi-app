@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { chapterList, getQuestionsByChapter, questions } from '@/lib/questions'
 import { getQuestionStats, getRecommendedQuestions } from '@/lib/storage'
@@ -18,8 +18,6 @@ type Tab = 'sōron' | 'kakuron'
 type SelectionMode = 'manual' | 'auto' | 'recommended' | 'weak'
 type ManualSubTab = 'list' | 'reference'
 
-const AUTO_COUNTS = [10, 20, 50, 0]
-
 export default function Home() {
   const router = useRouter()
   const { user } = useAuth()
@@ -30,8 +28,7 @@ export default function Home() {
   const [selectedChapter, setSelectedChapter] = useState<number>(1)
   const [manualSubTab, setManualSubTab] = useState<ManualSubTab>('list')
 
-  const [autoChapterNums, setAutoChapterNums] = useState<number[]>([])
-  const [autoCount, setAutoCount] = useState<number>(20)
+  const sessionUsedIds = useRef(new Set<string>())
 
   const [recommended, setRecommended] = useState<{
     dueIds: string[]; weakIds: string[]; newIds: string[]
@@ -101,14 +98,19 @@ export default function Home() {
 
   function startManual(q: Question) { setStudyQueue([q]); setStudyIndex(0) }
 
-  function startAuto() {
-    const pool = questions.filter(q => {
-      if (q.section !== tab) return false
-      return autoChapterNums.length > 0 ? autoChapterNums.includes(q.chapterNum) : true
-    })
-    const shuffled = [...pool].sort(() => Math.random() - 0.5)
-    const count = autoCount === 0 ? shuffled.length : autoCount
-    setStudyQueue(shuffled.slice(0, count))
+  function startRandom1() {
+    const unused = questions.filter(q => !sessionUsedIds.current.has(q.id))
+    const pool = unused.length > 0 ? unused : questions
+    if (unused.length === 0) sessionUsedIds.current.clear()
+    const picked = pool[Math.floor(Math.random() * pool.length)]
+    sessionUsedIds.current.add(picked.id)
+    setStudyQueue([picked])
+    setStudyIndex(0)
+  }
+
+  function startRandom5() {
+    const shuffled = [...questions].sort(() => Math.random() - 0.5)
+    setStudyQueue(shuffled.slice(0, 5))
     setStudyIndex(0)
   }
 
@@ -127,7 +129,12 @@ export default function Home() {
 
   function handleStudyBack() {
     const next = studyIndex + 1
-    if (next < studyQueue.length) { setStudyIndex(next) } else { setStudyQueue([]); setStudyIndex(0) }
+    if (next < studyQueue.length) {
+      setStudyIndex(next)
+    } else {
+      setStudyQueue([])
+      setStudyIndex(0)
+    }
   }
 
   const currentQuestion = studyQueue[studyIndex] ?? null
@@ -144,10 +151,6 @@ export default function Home() {
   }
 
   const totalRecommended = recommended.dueIds.length + recommended.weakIds.length + recommended.newIds.length
-
-  function toggleAutoChapter(num: number) {
-    setAutoChapterNums(prev => prev.includes(num) ? prev.filter(n => n !== num) : [...prev, num])
-  }
 
   return (
     <div className="max-w-lg mx-auto min-h-screen bg-gray-50">
@@ -210,7 +213,7 @@ export default function Home() {
           {(['sōron', 'kakuron'] as Tab[]).map(t => (
             <button
               key={t}
-              onClick={() => { setTab(t); setSelectedChapter(1); setAutoChapterNums([]) }}
+              onClick={() => { setTab(t); setSelectedChapter(1) }}
               className={`flex-1 py-2.5 text-sm font-bold border-b-2 transition-colors ${
                 tab === t
                   ? 'border-blue-600 text-blue-600'
@@ -318,63 +321,47 @@ export default function Home() {
 
       {/* ── ランダムモード ── */}
       {selectionMode === 'auto' && (
-        <div className="px-4 pt-5 pb-24 space-y-6">
-          <div>
-            <p className="text-xs font-bold text-gray-500 mb-2.5 uppercase tracking-wide">対象章（未選択＝全章）</p>
-            <div className="flex flex-wrap gap-2">
-              {currentChapters.map(ch => {
-                const selected = autoChapterNums.includes(ch.chapterNum)
-                return (
-                  <button
-                    key={ch.id}
-                    onClick={() => toggleAutoChapter(ch.chapterNum)}
-                    className={`px-4 py-2 rounded-full text-sm font-bold transition-colors ${
-                      selected ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600 active:bg-gray-50'
-                    }`}
-                  >
-                    第{ch.chapterNum}章
-                  </button>
-                )
-              })}
-            </div>
-          </div>
+        <div className="px-4 pt-6 pb-24 space-y-4">
+          <p className="text-xs text-gray-400 text-center">
+            全{questions.length}問（総論＋各論）からランダム出題
+          </p>
 
-          <div>
-            <p className="text-xs font-bold text-gray-500 mb-2.5 uppercase tracking-wide">問題数</p>
-            <div className="flex gap-2">
-              {AUTO_COUNTS.map(n => (
-                <button
-                  key={n}
-                  onClick={() => setAutoCount(n)}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-colors ${
-                    autoCount === n ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600 active:bg-gray-50'
-                  }`}
-                >
-                  {n === 0 ? '全て' : `${n}問`}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {(() => {
-            const pool = questions.filter(q => {
-              if (q.section !== tab) return false
-              return autoChapterNums.length > 0 ? autoChapterNums.includes(q.chapterNum) : true
-            })
-            const actual = autoCount === 0 ? pool.length : Math.min(autoCount, pool.length)
-            return (
-              <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-sm text-blue-700">
-                対象 <strong>{pool.length}問</strong> から <strong>{actual}問</strong> をランダム出題
-              </div>
-            )
-          })()}
-
+          {/* ランダム1問 */}
           <button
-            onClick={startAuto}
-            className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl text-base active:bg-blue-700"
+            onClick={startRandom1}
+            className="w-full bg-white border border-gray-200 rounded-2xl p-5 text-left active:bg-gray-50 shadow-sm"
           >
-            🎲 スタート
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-2xl flex-shrink-0">
+                🎲
+              </div>
+              <div className="flex-1">
+                <p className="font-bold text-gray-800">ランダム（1問）</p>
+                <p className="text-sm text-gray-500 mt-0.5">全問からランダムに1問。解いた問題は後回しにします</p>
+              </div>
+            </div>
           </button>
+
+          {/* ランダム5問 */}
+          <button
+            onClick={startRandom5}
+            className="w-full bg-white border border-gray-200 rounded-2xl p-5 text-left active:bg-gray-50 shadow-sm"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center text-2xl flex-shrink-0">
+                🎯
+              </div>
+              <div className="flex-1">
+                <p className="font-bold text-gray-800">ランダム（5問）</p>
+                <p className="text-sm text-gray-500 mt-0.5">総論・各論混在で5問セット。終了後に新セット生成</p>
+              </div>
+            </div>
+          </button>
+
+          <div className="bg-gray-50 rounded-xl px-4 py-3 text-xs text-gray-400 space-y-1">
+            <p>・総論 {questions.filter(q => q.section === 'sōron').length}問 ＋ 各論 {questions.filter(q => q.section === 'kakuron').length}問 の全{questions.length}問が対象</p>
+            <p>・ランダム1問は全問解くまで同じ問題が出にくくなります</p>
+          </div>
         </div>
       )}
 
