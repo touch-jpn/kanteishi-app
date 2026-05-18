@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Question } from '@/lib/types'
 import type { scoreAnswer } from '@/lib/scoring'
@@ -22,8 +22,9 @@ export default function ResultScreen({ question, result, mode, isPremium, user, 
   const router = useRouter()
   const { total, keywordScore, similarityScore, matchedKeywords, similarityRate } = result
   const savedRef = useRef(false)
+  const [addedToReview, setAddedToReview] = useState(false)
 
-  // ログイン済みなら自動でSupabaseに保存（slug直接保存・questions lookup不要）
+  // ログイン済みなら自動でSupabaseに保存
   useEffect(() => {
     if (!user || savedRef.current) return
     savedRef.current = true
@@ -36,6 +37,23 @@ export default function ResultScreen({ question, result, mode, isPremium, user, 
       if (error) console.error('[answer_logs] insert failed:', error.message)
     })()
   }, [user, question.slug, total])
+
+  async function addToReviewQueue() {
+    if (!user || addedToReview) return
+    const jstOffset = 9 * 60 * 60 * 1000
+    const nowJST = new Date(Date.now() + jstOffset)
+    const tomorrow = new Date(nowJST)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const reviewDate = tomorrow.toISOString().slice(0, 10)
+
+    const { error } = await supabase.from('review_queue').insert({
+      user_id:       user.id,
+      question_slug: question.slug,
+      review_date:   reviewDate,
+    })
+    if (!error) setAddedToReview(true)
+    else console.error('[review_queue] insert failed:', error.message)
+  }
 
   const scoreColor = total >= 80 ? 'text-green-600' : total >= 60 ? 'text-yellow-500' : 'text-red-500'
   const ringColor  = total >= 80 ? 'border-green-400' : total >= 60 ? 'border-yellow-400' : 'border-red-400'
@@ -126,10 +144,20 @@ export default function ResultScreen({ question, result, mode, isPremium, user, 
       {/* メモ（プレミアム） */}
       {isPremium && <MemoPanel questionId={question.id} />}
 
-      {/* SM-2 メッセージ */}
-      <p className="text-xs text-gray-400 text-center">
-        {total >= 80 ? '✨ 次回の復習は数日後に設定されました' : total >= 60 ? '📅 次回の復習は明後日以降' : '🔄 明日また復習します'}
-      </p>
+      {/* 明日また復習する */}
+      {user && (
+        <button
+          onClick={addToReviewQueue}
+          disabled={addedToReview}
+          className={`w-full py-3 rounded-xl text-sm font-bold transition-colors ${
+            addedToReview
+              ? 'bg-green-50 text-green-600 border border-green-200'
+              : 'bg-gray-50 text-gray-500 border border-gray-200 active:bg-gray-100'
+          }`}
+        >
+          {addedToReview ? '✅ 明日の復習リストに追加しました' : '📅 明日また復習する'}
+        </button>
+      )}
 
       {/* ボタン */}
       <div className="flex gap-3">

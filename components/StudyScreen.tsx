@@ -17,12 +17,13 @@ type StudyMode = 'select' | 'blank' | 'free' | 'result' | 'premium-gate'
 interface Props {
   question: Question
   onBack: () => void
+  onNext: () => void
   queueInfo?: { current: number; total: number }
   isPremium: boolean
   user: User | null
 }
 
-export default function StudyScreen({ question, onBack, queueInfo, isPremium, user }: Props) {
+export default function StudyScreen({ question, onBack, onNext, queueInfo, isPremium, user }: Props) {
   const router = useRouter()
   const [mode, setMode] = useState<StudyMode>('select')
   const [result, setResult] = useState<ReturnType<typeof scoreAnswer> | null>(null)
@@ -121,7 +122,7 @@ export default function StudyScreen({ question, onBack, queueInfo, isPremium, us
             isPremium={isPremium}
             user={user}
             onRetry={() => setMode('select')}
-            onNext={onBack}
+            onNext={onNext}
           />
         )}
       </div>
