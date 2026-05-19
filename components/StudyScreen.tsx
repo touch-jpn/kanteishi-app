@@ -28,6 +28,7 @@ export default function StudyScreen({ question, onBack, onNext, queueInfo, isPre
   const [mode, setMode] = useState<StudyMode>('select')
   const [result, setResult] = useState<ReturnType<typeof scoreAnswer> | null>(null)
   const [activeMode, setActiveMode] = useState<'blank' | 'free'>('blank')
+  const [blankLevel, setBlankLevel] = useState<1 | 2>(2)
   const { bookmarked, toggle: toggleBookmark } = useBookmark(question.slug, user)
 
   const handleSubmit = useCallback(
@@ -45,11 +46,12 @@ export default function StudyScreen({ question, onBack, onNext, queueInfo, isPre
     [question]
   )
 
-  function handleSelectMode(m: 'blank' | 'free') {
+  function handleSelectMode(m: 'blank' | 'free', level?: 1 | 2) {
     if (m === 'free' && !isPremium) {
       setMode('premium-gate')
       return
     }
+    if (m === 'blank' && level) setBlankLevel(level)
     setMode(m)
   }
 
@@ -102,7 +104,11 @@ export default function StudyScreen({ question, onBack, onNext, queueInfo, isPre
           <ModeSelect onSelect={handleSelectMode} isPremium={isPremium} />
         )}
         {mode === 'blank' && (
-          <BlankMode question={question} onSubmit={ans => handleSubmit(ans, 'blank')} />
+          <BlankMode
+            question={question}
+            onSubmit={ans => handleSubmit(ans, 'blank')}
+            level={blankLevel}
+          />
         )}
         {mode === 'free' && (
           <FreeMode question={question} onSubmit={ans => handleSubmit(ans, 'free')} />
@@ -134,16 +140,36 @@ function ModeSelect({
   onSelect,
   isPremium,
 }: {
-  onSelect: (m: 'blank' | 'free') => void
+  onSelect: (m: 'blank' | 'free', level?: 1 | 2) => void
   isPremium: boolean
 }) {
   return (
     <div className="p-5 space-y-3 pt-8">
       <h2 className="text-base font-bold text-gray-700 mb-4">学習モードを選択</h2>
 
-      {/* 穴埋め */}
+      {/* 穴埋め L1 */}
       <button
-        onClick={() => onSelect('blank')}
+        onClick={() => onSelect('blank', 1)}
+        className="w-full bg-white border border-gray-200 rounded-2xl p-5 text-left active:bg-gray-50 transition-colors shadow-sm"
+      >
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-xl flex-shrink-0">
+            📝
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <p className="font-bold text-gray-800">穴埋め L1</p>
+              <span className="text-xs font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">最重要語</span>
+            </div>
+            <p className="text-sm text-gray-500 mt-0.5">最高ポイントのキーワードだけを穴埋め</p>
+          </div>
+          <span className="text-xs bg-blue-100 text-blue-600 font-bold px-2.5 py-1 rounded-full flex-shrink-0">無料</span>
+        </div>
+      </button>
+
+      {/* 穴埋め L2 */}
+      <button
+        onClick={() => onSelect('blank', 2)}
         className="w-full bg-white border border-gray-200 rounded-2xl p-5 text-left active:bg-gray-50 transition-colors shadow-sm"
       >
         <div className="flex items-center gap-4">
@@ -151,10 +177,13 @@ function ModeSelect({
             📝
           </div>
           <div className="flex-1">
-            <p className="font-bold text-gray-800">穴埋めモード</p>
-            <p className="text-sm text-gray-500 mt-0.5">空欄にキーワードを手入力する</p>
+            <div className="flex items-center gap-2">
+              <p className="font-bold text-gray-800">穴埋め L2</p>
+              <span className="text-xs font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">標準</span>
+            </div>
+            <p className="text-sm text-gray-500 mt-0.5">すべての重要語を穴埋め（現行）</p>
           </div>
-          <span className="text-xs bg-blue-100 text-blue-600 font-bold px-2.5 py-1 rounded-full">無料</span>
+          <span className="text-xs bg-blue-100 text-blue-600 font-bold px-2.5 py-1 rounded-full flex-shrink-0">無料</span>
         </div>
       </button>
 
@@ -179,7 +208,7 @@ function ModeSelect({
               基準を自由に入力して採点する
             </p>
           </div>
-          <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+          <span className={`text-xs font-bold px-2.5 py-1 rounded-full flex-shrink-0 ${
             isPremium
               ? 'bg-emerald-100 text-emerald-700'
               : 'bg-amber-100 text-amber-600'

@@ -6,25 +6,44 @@ import type { Question } from '@/lib/types'
 interface Props {
   question: Question
   onSubmit: (reconstructedAnswer: string) => void
+  level?: 1 | 2
 }
 
 function normalize(s: string) {
   return s.replace(/\s+/g, '').replace(/　/g, '').toLowerCase()
 }
 
-export default function BlankMode({ question, onSubmit }: Props) {
-  const [inputs, setInputs] = useState<string[]>(question.blanks.map(() => ''))
+/** L1 用：最高ポイントのキーワードに絞った blanks */
+function getActiveBlanks(question: Question, level: 1 | 2) {
+  if (level === 2) return question.blanks
+
+  // 最高ポイントのキーワードを取得
+  const sortedKw = [...question.keywords].sort((a, b) => b.points - a.points)
+  const maxPts = sortedKw[0]?.points ?? 0
+  // 同点 1 位をすべて対象に（最低 1 個、最大 2 個まで）
+  const topWords = new Set(
+    sortedKw.filter(k => k.points === maxPts).slice(0, 2).map(k => k.word)
+  )
+  const filtered = question.blanks.filter(b => topWords.has(b.word))
+  // 対象がなければ全 blanks にフォールバック
+  return filtered.length > 0 ? filtered : question.blanks
+}
+
+export default function BlankMode({ question, onSubmit, level = 2 }: Props) {
+  const activeBlanks = useMemo(() => getActiveBlanks(question, level), [question, level])
+
+  const [inputs, setInputs] = useState<string[]>(activeBlanks.map(() => ''))
   const [submitted, setSubmitted] = useState(false)
   const [checked, setChecked] = useState<boolean[] | null>(null)
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
 
-  // 文章をセグメントに分解
+  // 文章をセグメントに分解（activeBlanks のみを穴に）
   const segments = useMemo(() => {
     type Seg = { type: 'text'; content: string } | { type: 'blank'; blankIdx: number; word: string }
     const result: Seg[] = []
     let remaining = question.answer
     let blankIdx = 0
-    for (const blank of question.blanks) {
+    for (const blank of activeBlanks) {
       const idx = remaining.indexOf(blank.word)
       if (idx === -1) { blankIdx++; continue }
       if (idx > 0) result.push({ type: 'text', content: remaining.slice(0, idx) })
@@ -34,7 +53,7 @@ export default function BlankMode({ question, onSubmit }: Props) {
     }
     if (remaining) result.push({ type: 'text', content: remaining })
     return result
-  }, [question])
+  }, [question, activeBlanks])
 
   function handleInput(idx: number, value: string) {
     const next = [...inputs]
@@ -53,14 +72,13 @@ export default function BlankMode({ question, onSubmit }: Props) {
 
   function handleSubmit() {
     if (submitted) return
-    // 各入力が正解かチェック
-    const results = question.blanks.map((b, i) => normalize(inputs[i]) === normalize(b.word))
+    const results = activeBlanks.map((b, i) => normalize(inputs[i]) === normalize(b.word))
     setChecked(results)
     setSubmitted(true)
 
     // 正解の単語で埋めた解答文字列を構築して採点へ
     let answer = question.answer
-    question.blanks.forEach((b, i) => {
+    activeBlanks.forEach((b, i) => {
       if (!results[i]) {
         answer = answer.replace(b.word, `(誤:${inputs[i] || '未入力'})`)
       }
@@ -72,6 +90,24 @@ export default function BlankMode({ question, onSubmit }: Props) {
 
   return (
     <div className="p-5 space-y-5">
+      {/* レベルバッジ */}
+      {level === 1 && (
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full">
+            L1 · 最重要語のみ
+          </span>
+          <span className="text-xs text-gray-400">{activeBlanks.length}か所の穴埋め</span>
+        </div>
+      )}
+      {level === 2 && (
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full">
+            L2 · 標準
+          </span>
+          <span className="text-xs text-gray-400">{activeBlanks.length}か所の穴埋め</span>
+        </div>
+      )}
+
       {/* 問題文（穴あき） */}
       <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 text-sm text-gray-800 leading-[2.2] tracking-wide">
         {segments.map((seg, i) => {
@@ -109,7 +145,7 @@ export default function BlankMode({ question, onSubmit }: Props) {
       {/* 採点後の正解表示 */}
       {submitted && checked && (
         <div className="space-y-2">
-          {question.blanks.map((b, i) => (
+          {activeBlanks.map((b, i) => (
             !checked[i] && (
               <div key={i} className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2 text-sm">
                 <span className="text-red-500 font-bold mt-0.5 flex-shrink-0">✗</span>

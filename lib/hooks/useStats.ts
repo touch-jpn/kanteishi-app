@@ -9,6 +9,7 @@ export interface LearningStats {
   totalCount: number
   correctRate: number
   streak: number
+  answerDates: string[]
 }
 
 const EMPTY: LearningStats = {
@@ -16,6 +17,7 @@ const EMPTY: LearningStats = {
   totalCount: 0,
   correctRate: 0,
   streak: 0,
+  answerDates: [],
 }
 
 function calcStreak(dates: string[]): number {
@@ -61,7 +63,7 @@ export function useStats(user: User | null) {
       const dates       = (data.answer_dates ?? []) as string[]
       const streak      = calcStreak(dates)
 
-      setStats({ todayCount, totalCount, correctRate, streak })
+      setStats({ todayCount, totalCount, correctRate, streak, answerDates: dates })
     })()
   }, [user])
 

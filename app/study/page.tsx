@@ -13,11 +13,14 @@ import QuestionCard from '@/components/QuestionCard'
 import StudyScreen from '@/components/StudyScreen'
 import PremiumGate from '@/components/PremiumGate'
 import ReferenceView from '@/components/ReferenceView'
+import RedSheetMode from '@/components/RedSheetMode'
+import StudyCalendar from '@/components/StudyCalendar'
 import type { Question } from '@/lib/types'
 
 type TopView = 'home' | 'study' | 'reference'
 type Tab = 'sōron' | 'kakuron'
 type SelectionMode = 'manual' | 'auto' | 'recommended' | 'review'
+type RefMode = 'full' | 'redsheet'
 
 export default function Home() {
   const router = useRouter()
@@ -31,6 +34,7 @@ export default function Home() {
   const [tab, setTab] = useState<Tab>('sōron')
   const [selectionMode, setSelectionMode] = useState<SelectionMode>('manual')
   const [selectedChapter, setSelectedChapter] = useState<number>(1)
+  const [refMode, setRefMode] = useState<RefMode>('full')
 
   const sessionUsedIds = useRef(new Set<string>())
 
@@ -258,7 +262,7 @@ export default function Home() {
           )}
         </header>
 
-        <main className="px-4 pt-6 pb-10 space-y-3">
+        <main className="px-4 pt-6 pb-10 space-y-4">
           <p className="text-xs text-gray-400 px-1">何をしますか？</p>
 
           {/* 問題を解く */}
@@ -293,13 +297,18 @@ export default function Home() {
               <div className="flex-1">
                 <p className="font-black text-gray-900 text-base">基準・留意事項</p>
                 <p className="text-sm text-gray-500 mt-0.5">不動産鑑定評価基準の全文を閲覧</p>
-                <p className="text-xs text-gray-400 mt-1">暗記・読み込みモード</p>
+                <p className="text-xs text-gray-400 mt-1">全文閲覧 · 赤シートモード</p>
               </div>
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="text-gray-300 flex-shrink-0">
                 <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
           </button>
+
+          {/* 学習カレンダー */}
+          {user && stats.answerDates.length > 0 && (
+            <StudyCalendar answerDates={stats.answerDates} />
+          )}
         </main>
       </div>
     )
@@ -310,7 +319,7 @@ export default function Home() {
   // ────────────────────────────────────────
   if (topView === 'reference') {
     return (
-      <div className="max-w-lg mx-auto min-h-screen bg-gray-50">
+      <div className="max-w-lg mx-auto min-h-screen bg-gray-50 flex flex-col">
         <header className="bg-white border-b border-gray-200 px-4 sticky top-0 z-20">
           <div className="flex items-center gap-3 h-14">
             <button
@@ -322,7 +331,25 @@ export default function Home() {
                 <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
-            <p className="text-sm font-bold text-gray-800">基準・留意事項</p>
+            <p className="text-sm font-bold text-gray-800 flex-1">基準・留意事項</p>
+            {/* モード切替タブ */}
+            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
+              {([
+                { key: 'full',     label: '全文',   icon: '📄' },
+                { key: 'redsheet', label: '赤シート', icon: '🔴' },
+              ] as { key: RefMode; label: string; icon: string }[]).map(({ key, label, icon }) => (
+                <button
+                  key={key}
+                  onClick={() => setRefMode(key)}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold transition-colors ${
+                    refMode === key ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500'
+                  }`}
+                >
+                  <span>{icon}</span>
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
           </div>
           <div className="flex">
             {(['sōron', 'kakuron'] as Tab[]).map(t => (
@@ -355,9 +382,23 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="h-[calc(100vh-130px)]">
-          <ReferenceView chapterKey={chapterKey} chapterLabel={chapterLabel} />
-        </div>
+        {refMode === 'full' && (
+          <div className="flex-1 overflow-hidden">
+            <div className="h-full">
+              <ReferenceView chapterKey={chapterKey} chapterLabel={chapterLabel} />
+            </div>
+          </div>
+        )}
+
+        {refMode === 'redsheet' && (
+          <div className="flex-1 overflow-hidden">
+            {chapterQuestions.length === 0 ? (
+              <div className="text-center py-16 text-sm text-gray-400">この章の問題データがありません</div>
+            ) : (
+              <RedSheetMode questions={chapterQuestions} chapterLabel={chapterLabel} />
+            )}
+          </div>
+        )}
       </div>
     )
   }
