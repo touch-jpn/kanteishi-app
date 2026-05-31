@@ -305,6 +305,24 @@ export default function Home() {
             </div>
           </button>
 
+          {/* 基準ビューア */}
+          <a
+            href="/anki"
+            className="w-full bg-white border border-gray-200 rounded-2xl p-5 text-left active:bg-gray-50 shadow-sm flex items-center gap-4"
+          >
+            <div className="w-14 h-14 rounded-xl bg-red-50 flex items-center justify-center text-3xl flex-shrink-0">
+              📕
+            </div>
+            <div className="flex-1">
+              <p className="font-black text-gray-900 text-base">基準ビューア</p>
+              <p className="text-sm text-gray-500 mt-0.5">基準全文を読みながら赤シート暗記</p>
+              <p className="text-xs text-gray-400 mt-1">総論＋各論 · 弱/中/強 レベル対応</p>
+            </div>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="text-gray-300 flex-shrink-0">
+              <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </a>
+
           {/* 学習カレンダー */}
           {user && stats.answerDates.length > 0 && (
             <StudyCalendar answerDates={stats.answerDates} />
@@ -392,11 +410,10 @@ export default function Home() {
 
         {refMode === 'redsheet' && (
           <div className="flex-1 overflow-hidden">
-            {chapterQuestions.length === 0 ? (
-              <div className="text-center py-16 text-sm text-gray-400">この章の問題データがありません</div>
-            ) : (
-              <RedSheetMode questions={chapterQuestions} chapterLabel={chapterLabel} />
-            )}
+            <RedSheetMode
+              chapterKey={chapterKey}
+              chapterLabel={chapterLabel}
+            />
           </div>
         )}
       </div>

@@ -1,0 +1,40 @@
+name: Keep Supabase Alive
+
+# Supabase 無料プランは7日間無操作で一時停止する。
+# 3日おとき（= 一時停止閾値の半分以下）に Supabase REST API を直叩きして起こす。
+
+on:
+  schedule:
+    # 毎週月・木 の 00:00 UTC（= 日本時間 09:00）
+    - cron: '0 0 * * 1,4'
+  workflow_dispatch:  # GitHub UI から手動実行も可
+
+jobs:
+  ping:
+    name: Ping Supabase REST API
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Ping Supabase (profiles テーブルに軽量クエリ)
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          echo "Pinging Supabase at $(date -u)"
+
+          STATUS=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            "${SUPABASE_URL}/rest/v1/profiles?select=id&limit=1" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            -H "Accept: application/json")
+
+          echo "HTTP Status: ${STATUS}"
+          echo "Response: $(cat /tmp/response.json)"
+
+          if [[ "$STATUS" != "200" && "$STATUS" != "406" ]]; then
+            echo "Unexpected status code: ${STATUS}"
+            exit 1
+          fi
+
+          echo "Supabase is alive!"
