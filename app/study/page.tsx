@@ -311,7 +311,7 @@ export default function Home() {
               📕
             </div>
             <div className="flex-1">
-              <p className="font-black text-gray-900 text-base">基準マスター</p>
+              <p className="font-black text-gray-900 text-base">基準ノート</p>
               <p className="text-sm text-gray-500 mt-0.5">基準全文 × 赤シートで完全暗記</p>
               <p className="text-xs text-gray-400 mt-1">総論＋各論 · L1 / L2 / L3</p>
             </div>
