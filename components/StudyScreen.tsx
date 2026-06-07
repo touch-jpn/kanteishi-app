@@ -29,16 +29,18 @@ export default function StudyScreen({ question, onBack, onNext, queueInfo, isPre
   const [result, setResult] = useState<ReturnType<typeof scoreAnswer> | null>(null)
   const [activeMode, setActiveMode] = useState<'blank' | 'free'>('blank')
   const [blankLevel, setBlankLevel] = useState<1 | 2>(2)
+  const [submittedAnswer, setSubmittedAnswer] = useState('')
   const { bookmarked, toggle: toggleBookmark } = useBookmark(question.slug, user)
 
   const handleSubmit = useCallback(
-    (userAnswer: string, m: 'blank' | 'free') => {
+    (ans: string, m: 'blank' | 'free') => {
       const r = scoreAnswer({
-        userAnswer,
+        userAnswer: ans,
         correctAnswer: question.answer,
         keywords: question.keywords,
       })
       setResult(r)
+      setSubmittedAnswer(ans)
       setActiveMode(m)
       recordStudy(question.id, r.total, m)
       setMode('result')
@@ -125,9 +127,10 @@ export default function StudyScreen({ question, onBack, onNext, queueInfo, isPre
             question={question}
             result={result}
             mode={activeMode}
+            userAnswer={submittedAnswer}
             isPremium={isPremium}
             user={user}
-            onRetry={() => setMode('select')}
+            onRetry={() => { setMode('select'); setSubmittedAnswer('') }}
             onNext={onNext}
           />
         )}
