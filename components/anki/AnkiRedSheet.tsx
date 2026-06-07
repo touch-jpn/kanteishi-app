@@ -36,16 +36,15 @@ const SECTION_LABEL: Record<Section, string> = {
   'kakuron': '各　論',
 }
 
-// 「問題レベル」感を消す → 赤シートの濃さ表現
 const LEVEL_LABEL: Record<Level, string> = {
-  1: '弱',
-  2: '中',
-  3: '強',
+  1: 'L1',
+  2: 'L2',
+  3: 'L3',
 }
-const LEVEL_DESC: Record<Level, string> = {
-  1: '最重要語のみ',
-  2: '重要語（短答向け）',
-  3: 'ほぼ全語（論文向け）',
+const LEVEL_SUB: Record<Level, string> = {
+  1: '入門',
+  2: '標準',
+  3: '上級',
 }
 
 // ──────────────────────────────────────────────
@@ -175,30 +174,28 @@ export default function AnkiRedSheet() {
       {/* ══ コントロールバー ══ */}
       <div className="border-b border-gray-100 px-4 py-2 flex items-center gap-3 flex-shrink-0">
 
-        {/* 赤シートラベル + レベル */}
+        {/* レベルセレクター */}
         <div className="flex items-center gap-1.5">
-          <span className="text-[10px] text-gray-400 font-medium">赤シート</span>
+          <span className="text-[10px] text-gray-400 font-medium">レベル</span>
           <div className="flex gap-0.5 bg-gray-100 rounded-lg p-0.5">
             {([1, 2, 3] as Level[]).map(l => (
               <button
                 key={l}
                 onClick={() => changeLevel(l)}
-                className={`px-2.5 py-[5px] rounded-[5px] text-xs font-bold transition-all ${
+                className={`flex flex-col items-center px-2.5 py-[3px] rounded-[5px] transition-all ${
                   level === l
                     ? 'bg-red-700 text-white shadow-sm'
                     : 'text-gray-500 active:bg-white/70'
                 }`}
               >
-                {LEVEL_LABEL[l]}
+                <span className="text-xs font-bold leading-tight">{LEVEL_LABEL[l]}</span>
+                <span className={`text-[8px] leading-tight ${level === l ? 'text-red-200' : 'text-gray-400'}`}>
+                  {LEVEL_SUB[l]}
+                </span>
               </button>
             ))}
           </div>
         </div>
-
-        {/* レベル説明 */}
-        <span className="text-[10px] text-gray-400 flex-1 hidden sm:block">
-          {LEVEL_DESC[level]}
-        </span>
 
         {/* 基準 / 留意事項 */}
         <div className="flex gap-0.5 bg-gray-100 rounded-lg p-0.5 flex-shrink-0 ml-auto">

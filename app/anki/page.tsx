@@ -9,8 +9,8 @@ import type { Metadata } from 'next'
 import KijunViewerWrapper from './KijunViewerWrapper'
 
 export const metadata: Metadata = {
-  title: '鑑定評価基準ビューア | 不動産鑑定士 暗記アプリ',
-  description: '不動産鑑定評価基準の全文を赤シートで読む',
+  title: '基準マスター | 不動産鑑定士 暗記アプリ',
+  description: '不動産鑑定評価基準の全文を赤シートで完全暗記',
 }
 
 export default function AnkiPage() {
@@ -27,10 +27,10 @@ export default function AnkiPage() {
         </a>
         <div className="flex-1">
           <h1 className="text-sm font-bold text-gray-800 leading-tight">
-            鑑定評価基準ビューア
+            基準マスター
           </h1>
           <p className="text-[10px] text-gray-400 leading-tight mt-0.5">
-            基準全文 + 赤シート暗記
+            基準全文 × 赤シートで完全暗記
           </p>
         </div>
       </header>
