@@ -18,12 +18,13 @@ interface Props {
   question: Question
   onBack: () => void
   onNext: () => void
+  onHome: () => void
   queueInfo?: { current: number; total: number }
   isPremium: boolean
   user: User | null
 }
 
-export default function StudyScreen({ question, onBack, onNext, queueInfo, isPremium, user }: Props) {
+export default function StudyScreen({ question, onBack, onNext, onHome, queueInfo, isPremium, user }: Props) {
   const router = useRouter()
   const [mode, setMode] = useState<StudyMode>('select')
   const [result, setResult] = useState<ReturnType<typeof scoreAnswer> | null>(null)
@@ -68,6 +69,16 @@ export default function StudyScreen({ question, onBack, onNext, queueInfo, isPre
         >
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
             <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        <button
+          onClick={onHome}
+          className="text-gray-400 active:text-gray-600 p-1"
+          aria-label="ホームへ"
+        >
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+            <path d="M3 9.5L10 3l7 6.5V17a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M7 18v-6h6v6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
         <div className="flex-1 min-w-0">

@@ -174,6 +174,7 @@ export default function Home() {
         question={currentQuestion}
         onBack={handleStudyBack}
         onNext={handleStudyNext}
+        onHome={() => { handleStudyBack(); setTopView('home') }}
         queueInfo={studyQueue.length > 1 ? { current: studyIndex + 1, total: studyQueue.length } : undefined}
         isPremium={isPremium}
         user={user}
