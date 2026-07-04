@@ -95,7 +95,7 @@ export default function AdminPage() {
     <div className="max-w-lg mx-auto min-h-screen bg-gray-50">
       {/* ヘッダー */}
       <header className="bg-white border-b border-gray-200 px-4 flex items-center gap-3 h-14 sticky top-0 z-10">
-        <a href="/study" className="text-gray-400 text-lg font-bold leading-none p-1 -ml-1">‹</a>
+        <a href="/" className="text-gray-400 text-lg font-bold leading-none p-1 -ml-1">‹</a>
         <div className="flex-1">
           <p className="text-sm font-bold text-gray-800">管理ダッシュボード</p>
           <p className="text-[10px] text-gray-400">管理者専用</p>

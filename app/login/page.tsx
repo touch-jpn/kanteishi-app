@@ -68,6 +68,13 @@ function LoginForm() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
 
+        <div className="mb-4">
+          <a href="/" className="text-xs text-gray-400 flex items-center gap-1 active:text-gray-600">
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            トップへ戻る
+          </a>
+        </div>
+
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-600 mb-4">
             <span className="text-white text-lg font-black">鑑</span>

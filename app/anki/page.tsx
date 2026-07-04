@@ -19,7 +19,7 @@ export default function AnkiPage() {
       {/* ─── ページヘッダー ─── */}
       <header className="flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-100 flex-shrink-0">
         <a
-          href="/study"
+          href="/"
           className="text-gray-400 text-lg font-bold leading-none p-1 -ml-1 active:text-gray-600"
           aria-label="ホームへ戻る"
         >

@@ -73,15 +73,11 @@ export default function FeedbackPage() {
     <div className="max-w-lg mx-auto min-h-screen bg-gray-50">
       {/* ヘッダー */}
       <header className="bg-white border-b border-gray-200 px-4 h-14 flex items-center gap-3 sticky top-0 z-10">
-        <button
-          onClick={() => router.back()}
-          className="text-gray-500 p-1 -ml-1"
-          aria-label="戻る"
-        >
+        <a href="/" className="text-gray-500 p-1 -ml-1 active:text-gray-700" aria-label="ホームへ">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
             <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-        </button>
+        </a>
         <p className="text-sm font-bold text-gray-800">フィードバック</p>
       </header>
 

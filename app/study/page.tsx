@@ -192,7 +192,7 @@ export default function Home() {
       <div className="max-w-lg mx-auto min-h-screen bg-gray-50">
         <header className="bg-white border-b border-gray-200 px-4 sticky top-0 z-20">
           <div className="flex items-center justify-between h-14">
-            <div className="flex items-center gap-2">
+            <a href="/" className="flex items-center gap-2 active:opacity-70">
               <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
                 <span className="text-white text-xs font-black">鑑</span>
               </div>
@@ -200,7 +200,7 @@ export default function Home() {
                 <p className="text-sm font-black text-gray-800 leading-tight">不動産鑑定士</p>
                 <p className="text-xs text-gray-400 leading-tight">暗記アプリ</p>
               </div>
-            </div>
+            </a>
             <div className="flex items-center gap-2">
               {user ? (
                 <button onClick={() => supabase.auth.signOut()} className="text-xs text-gray-400 px-2 py-1">
@@ -348,6 +348,12 @@ export default function Home() {
               </svg>
             </button>
             <p className="text-sm font-bold text-gray-800 flex-1">基準・留意事項</p>
+            <a href="/" className="text-gray-400 active:text-gray-600 p-1" aria-label="ホームへ">
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                <path d="M3 9.5L10 3l7 6.5V17a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M7 18v-6h6v6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </a>
           </div>
           <div className="flex">
             {(['sōron', 'kakuron'] as Tab[]).map(t => (
@@ -407,6 +413,12 @@ export default function Home() {
               </svg>
             </button>
             <p className="text-sm font-bold text-gray-800">問題を解く</p>
+            <a href="/" className="text-gray-400 active:text-gray-600 p-1" aria-label="ホームへ">
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                <path d="M3 9.5L10 3l7 6.5V17a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M7 18v-6h6v6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </a>
           </div>
           <div className="flex items-center gap-2">
             {user ? (

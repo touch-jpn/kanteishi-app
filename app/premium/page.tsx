@@ -40,15 +40,15 @@ export default function PremiumPage() {
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-4">
         <div className="flex items-center gap-3 h-14">
-          <button
-            onClick={() => router.back()}
-            className="text-gray-500 p-1 -ml-1"
-            aria-label="戻る"
+          <a
+            href="/"
+            className="text-gray-500 p-1 -ml-1 active:text-gray-700"
+            aria-label="ホームへ"
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-          </button>
+          </a>
           <p className="text-sm font-bold text-gray-800">機能について</p>
         </div>
       </header>
