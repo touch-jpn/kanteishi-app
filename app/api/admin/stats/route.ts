@@ -40,6 +40,9 @@ export async function GET(req: NextRequest) {
     { data: missedRaw },
     { data: questionRaw },
     { data: recentRaw },
+    { data: dailyAnswerRaw },
+    { data: signupRaw },
+    { data: hourRaw },
   ] = await Promise.all([
     // 総ユーザー数
     svc.from('profiles').select('*', { count: 'exact', head: true }),
@@ -62,7 +65,21 @@ export async function GET(req: NextRequest) {
     svc.from('answer_logs')
       .select('question_slug, score, created_at')
       .order('created_at', { ascending: false })
-      .limit(10),
+      .limit(20),
+    // 過去30日の回答日時（日別グラフ用）
+    svc.from('answer_logs')
+      .select('created_at, user_id')
+      .gte('created_at', d30)
+      .order('created_at', { ascending: true }),
+    // 過去30日のユーザー登録日（登録推移用）
+    svc.from('profiles')
+      .select('created_at')
+      .gte('created_at', d30)
+      .order('created_at', { ascending: true }),
+    // 時間帯別（直近7日）
+    svc.from('answer_logs')
+      .select('created_at')
+      .gte('created_at', d7),
   ])
 
   // ── 集計 ─────────────────────────────────────────────────────
@@ -96,6 +113,53 @@ export async function GET(req: NextRequest) {
     .slice(0, 5)
     .map(([slug, count]) => ({ slug, count }))
 
+  // 日別アクティビティ集計（過去30日）
+  function toJSTDate(iso: string) {
+    return new Date(new Date(iso).getTime() + 9 * 3600_000).toISOString().slice(0, 10)
+  }
+  const dailyAnswerMap: Record<string, number> = {}
+  const dailyUserMap: Record<string, Set<string>> = {}
+  dailyAnswerRaw?.forEach(row => {
+    const d = toJSTDate(row.created_at)
+    dailyAnswerMap[d] = (dailyAnswerMap[d] ?? 0) + 1
+    if (!dailyUserMap[d]) dailyUserMap[d] = new Set()
+    dailyUserMap[d].add(row.user_id)
+  })
+
+  // 過去30日分の日付列を生成
+  const days30: string[] = []
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(jstNow.getTime() - i * 86400_000).toISOString().slice(0, 10)
+    days30.push(d)
+  }
+  const dailyActivity = days30.map(date => ({
+    date,
+    answers: dailyAnswerMap[date] ?? 0,
+    users:   dailyUserMap[date]?.size ?? 0,
+  }))
+
+  // 新規ユーザー登録 日別集計
+  const signupMap: Record<string, number> = {}
+  signupRaw?.forEach(row => {
+    const d = toJSTDate(row.created_at)
+    signupMap[d] = (signupMap[d] ?? 0) + 1
+  })
+  const dailySignups = days30.map(date => ({
+    date,
+    count: signupMap[date] ?? 0,
+  }))
+
+  // 時間帯別集計（JST、0-23時）
+  const hourMap: Record<number, number> = {}
+  hourRaw?.forEach(row => {
+    const h = new Date(new Date(row.created_at).getTime() + 9 * 3600_000).getUTCHours()
+    hourMap[h] = (hourMap[h] ?? 0) + 1
+  })
+  const hourlyActivity = Array.from({ length: 24 }, (_, h) => ({
+    hour: h,
+    count: hourMap[h] ?? 0,
+  }))
+
   return NextResponse.json({
     totalUsers:   totalUsers   ?? 0,
     totalAnswers: totalAnswers ?? 0,
@@ -105,6 +169,9 @@ export async function GET(req: NextRequest) {
     avgScore,
     topMissed,
     topQuestions,
-    recentAnswers: recentRaw ?? [],
+    recentAnswers:  recentRaw     ?? [],
+    dailyActivity,
+    dailySignups,
+    hourlyActivity,
   })
 }

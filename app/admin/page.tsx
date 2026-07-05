@@ -5,6 +5,10 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/hooks/useAuth'
 
+interface DayPoint  { date: string; answers: number; users: number }
+interface SignupPoint { date: string; count: number }
+interface HourPoint  { hour: number; count: number }
+
 interface Stats {
   totalUsers:    number
   totalAnswers:  number
@@ -15,6 +19,75 @@ interface Stats {
   topMissed:     { word: string; count: number }[]
   topQuestions:  { slug: string; count: number }[]
   recentAnswers: { question_slug: string; score: number | null; created_at: string }[]
+  dailyActivity: DayPoint[]
+  dailySignups:  SignupPoint[]
+  hourlyActivity: HourPoint[]
+}
+
+// ── グラフコンポーネント ──────────────────────────────────────
+
+function BarChart({
+  data,
+  valueKey,
+  color = '#3b82f6',
+  height = 64,
+  showDate = false,
+}: {
+  data: Record<string, number>[]
+  valueKey: string
+  color?: string
+  height?: number
+  showDate?: boolean
+}) {
+  const values = data.map(d => d[valueKey] as number)
+  const max = Math.max(...values, 1)
+  return (
+    <div className="flex items-end gap-px" style={{ height }}>
+      {data.map((d, i) => {
+        const v = d[valueKey] as number
+        const barH = Math.max(v > 0 ? 2 : 0, Math.round((v / max) * height))
+        return (
+          <div key={i} className="flex-1 flex flex-col items-center justify-end gap-0.5 group relative">
+            <div
+              className="w-full rounded-t-sm transition-all"
+              style={{ height: barH, backgroundColor: color, opacity: v === 0 ? 0.15 : 1 }}
+            />
+            {/* tooltip */}
+            <div className="absolute bottom-full mb-1 hidden group-hover:flex flex-col items-center pointer-events-none z-10">
+              <div className="bg-gray-800 text-white text-[10px] rounded px-1.5 py-0.5 whitespace-nowrap">
+                {showDate && <span className="text-gray-400 mr-1">{(d['date'] as string)?.slice(5)}</span>}
+                {v}
+              </div>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function HourChart({ data }: { data: HourPoint[] }) {
+  const max = Math.max(...data.map(d => d.count), 1)
+  return (
+    <div className="flex items-end gap-px" style={{ height: 48 }}>
+      {data.map(d => {
+        const h = Math.max(d.count > 0 ? 2 : 0, Math.round((d.count / max) * 48))
+        return (
+          <div key={d.hour} className="flex-1 flex flex-col items-center justify-end group relative">
+            <div
+              className="w-full rounded-t-sm"
+              style={{ height: h, backgroundColor: '#8b5cf6', opacity: d.count === 0 ? 0.15 : 1 }}
+            />
+            <div className="absolute bottom-full mb-1 hidden group-hover:flex flex-col items-center pointer-events-none z-10">
+              <div className="bg-gray-800 text-white text-[10px] rounded px-1.5 py-0.5 whitespace-nowrap">
+                {d.hour}時 / {d.count}回
+              </div>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
 }
 
 function StatCard({
@@ -104,6 +177,85 @@ export default function AdminPage() {
       </header>
 
       <main className="px-4 pt-5 pb-12 space-y-5">
+
+        {/* ── アクセス記録 ── */}
+        <section>
+          <p className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wide">アクセス記録（過去30日）</p>
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 space-y-4">
+
+            {/* 日別回答数 */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-bold text-gray-600">日別回答数</p>
+                <p className="text-[10px] text-gray-400">
+                  合計 {stats.dailyActivity.reduce((s, d) => s + d.answers, 0).toLocaleString()} 回
+                </p>
+              </div>
+              <BarChart
+                data={stats.dailyActivity}
+                valueKey="answers"
+                color="#3b82f6"
+                height={64}
+                showDate
+              />
+              <div className="flex justify-between mt-1">
+                <span className="text-[10px] text-gray-300">{stats.dailyActivity[0]?.date?.slice(5)}</span>
+                <span className="text-[10px] text-gray-300">{stats.dailyActivity[stats.dailyActivity.length - 1]?.date?.slice(5)}</span>
+              </div>
+            </div>
+
+            <div className="border-t border-gray-100" />
+
+            {/* 日別ユニークユーザー */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-bold text-gray-600">日別アクティブユーザー</p>
+                <p className="text-[10px] text-gray-400">回答したユニークユーザー数</p>
+              </div>
+              <BarChart
+                data={stats.dailyActivity}
+                valueKey="users"
+                color="#10b981"
+                height={48}
+                showDate
+              />
+            </div>
+
+            <div className="border-t border-gray-100" />
+
+            {/* 新規登録推移 */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-bold text-gray-600">新規ユーザー登録</p>
+                <p className="text-[10px] text-gray-400">
+                  30日で +{stats.dailySignups.reduce((s, d) => s + d.count, 0)} 人
+                </p>
+              </div>
+              <BarChart
+                data={stats.dailySignups}
+                valueKey="count"
+                color="#f59e0b"
+                height={40}
+                showDate
+              />
+            </div>
+
+            <div className="border-t border-gray-100" />
+
+            {/* 時間帯別 */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-bold text-gray-600">時間帯別アクセス（7日間・JST）</p>
+              </div>
+              <HourChart data={stats.hourlyActivity} />
+              <div className="flex justify-between mt-1">
+                <span className="text-[10px] text-gray-300">0時</span>
+                <span className="text-[10px] text-gray-300">12時</span>
+                <span className="text-[10px] text-gray-300">23時</span>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* ── ユーザー ── */}
         <section>
