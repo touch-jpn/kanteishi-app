@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/hooks/useAuth'
 
-interface DayPoint  { date: string; answers: number; users: number }
-interface SignupPoint { date: string; count: number }
-interface HourPoint  { hour: number; count: number }
+interface DayPoint   { date: string; answers: number; users: number; [k: string]: string | number }
+interface SignupPoint { date: string; count: number;  [k: string]: string | number }
+interface HourPoint  { hour: number; count: number;  [k: string]: string | number }
 
 interface Stats {
   totalUsers:    number
