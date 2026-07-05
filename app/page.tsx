@@ -1,7 +1,9 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { supabase } from '@/lib/supabase'
 
 const features = [
   {
@@ -32,8 +34,17 @@ const steps = [
   { num: '03', title: '採点・復習', desc: '採点後に模範解答と比較。正答率に応じて次回の復習タイミングが決まります。' },
 ]
 
+const ADMIN_EMAIL = 'blueboltmother@gmail.com'
+
 export default function LandingPage() {
   const router = useRouter()
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setIsAdmin(data.session?.user?.email === ADMIN_EMAIL)
+    })
+  }, [])
 
   return (
     <div className="max-w-lg mx-auto min-h-screen bg-white">
@@ -209,6 +220,12 @@ export default function LandingPage() {
           </Link>
         </div>
         <p className="text-xs text-gray-300">© 2025 不動産鑑定士 暗記アプリ</p>
+
+        {isAdmin && (
+          <Link href="/admin" className="text-[10px] text-gray-300 hover:text-gray-500">
+            管理ダッシュボード
+          </Link>
+        )}
       </footer>
     </div>
   )
