@@ -33,18 +33,18 @@ function BarChart({
   height = 64,
   showDate = false,
 }: {
-  data: Record<string, number>[]
+  data: Record<string, number | string>[]
   valueKey: string
   color?: string
   height?: number
   showDate?: boolean
 }) {
-  const values = data.map(d => d[valueKey] as number)
+  const values = data.map(d => Number(d[valueKey]))
   const max = Math.max(...values, 1)
   return (
     <div className="flex items-end gap-px" style={{ height }}>
       {data.map((d, i) => {
-        const v = d[valueKey] as number
+        const v = Number(d[valueKey])
         const barH = Math.max(v > 0 ? 2 : 0, Math.round((v / max) * height))
         return (
           <div key={i} className="flex-1 flex flex-col items-center justify-end gap-0.5 group relative">
