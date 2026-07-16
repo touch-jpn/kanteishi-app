@@ -9,6 +9,8 @@ interface DayPoint   { date: string; answers: number; users: number; [k: string]
 interface SignupPoint { date: string; count: number;  [k: string]: string | number }
 interface HourPoint  { hour: number; count: number;  [k: string]: string | number }
 
+interface LoginRecord { email: string; last_sign_in: string; created_at: string }
+
 interface Stats {
   totalUsers:    number
   totalAnswers:  number
@@ -22,6 +24,7 @@ interface Stats {
   dailyActivity: DayPoint[]
   dailySignups:  SignupPoint[]
   hourlyActivity: HourPoint[]
+  loginHistory:  LoginRecord[]
 }
 
 // ── グラフコンポーネント ──────────────────────────────────────
@@ -359,6 +362,37 @@ export default function AdminPage() {
             </div>
           </section>
         )}
+        {/* ── ログイン履歴 ── */}
+        {stats.loginHistory.length > 0 && (
+          <section>
+            <p className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wide">
+              ログイン履歴（最終ログイン順）
+            </p>
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm divide-y divide-gray-100">
+              {stats.loginHistory.map((r, i) => {
+                const toJST = (iso: string) => {
+                  const d = new Date(new Date(iso).getTime() + 9 * 3600_000)
+                  return d.toISOString().replace('T', ' ').slice(0, 16)
+                }
+                return (
+                  <div key={i} className="flex items-center justify-between px-4 py-2.5 gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm text-gray-700 font-medium truncate">{r.email}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">
+                        登録: {toJST(r.created_at)}
+                      </p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-xs text-gray-500 font-bold">{toJST(r.last_sign_in)}</p>
+                      <p className="text-[10px] text-gray-300">最終ログイン JST</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+        )}
+
       </main>
     </div>
   )

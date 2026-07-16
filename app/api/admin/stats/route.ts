@@ -160,6 +160,18 @@ export async function GET(req: NextRequest) {
     count: hourMap[h] ?? 0,
   }))
 
+  // ログイン履歴（全ユーザーの last_sign_in_at を取得）
+  const { data: { users: allUsers } } = await svc.auth.admin.listUsers({ perPage: 200 })
+  const loginHistory = allUsers
+    .filter(u => u.last_sign_in_at)
+    .sort((a, b) => new Date(b.last_sign_in_at!).getTime() - new Date(a.last_sign_in_at!).getTime())
+    .slice(0, 30)
+    .map(u => ({
+      email:        u.email ?? '(不明)',
+      last_sign_in: u.last_sign_in_at!,
+      created_at:   u.created_at,
+    }))
+
   return NextResponse.json({
     totalUsers:   totalUsers   ?? 0,
     totalAnswers: totalAnswers ?? 0,
@@ -173,5 +185,6 @@ export async function GET(req: NextRequest) {
     dailyActivity,
     dailySignups,
     hourlyActivity,
+    loginHistory,
   })
 }
