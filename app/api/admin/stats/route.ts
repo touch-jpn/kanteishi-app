@@ -50,27 +50,28 @@ export async function GET(req: NextRequest) {
     svc.from('answer_logs').select('*', { count: 'exact', head: true }),
     // 今日の回答数（JST基準）
     svc.from('answer_logs').select('*', { count: 'exact', head: true })
-      .gte('created_at', `${today}T00:00:00+09:00`),
+      .gte('answered_at', `${today}T00:00:00+09:00`),
     // 7日間のアクティブユーザー（user_id一覧）
-    svc.from('answer_logs').select('user_id').gte('created_at', d7),
+    svc.from('answer_logs').select('user_id').gte('answered_at', d7),
     // 30日間のアクティブユーザー
-    svc.from('answer_logs').select('user_id').gte('created_at', d30),
+    svc.from('answer_logs').select('user_id').gte('answered_at', d30),
     // 平均スコア用（最新1000件）
     svc.from('answer_logs').select('score').not('score', 'is', null).limit(1000),
     // 全ユーザーの missed_keywords（最新500件）
     svc.from('answer_logs').select('missed_keywords').not('missed_keywords', 'is', null).limit(500),
     // 回答数が多い問題
-    svc.from('answer_logs').select('question_slug').limit(2000),
+    svc.from('answer_logs').select('question_slug').not('question_slug', 'is', null).limit(2000),
     // 直近の回答（タイムライン用）
     svc.from('answer_logs')
-      .select('question_slug, score, created_at')
-      .order('created_at', { ascending: false })
+      .select('question_slug, score, answered_at')
+      .not('question_slug', 'is', null)
+      .order('answered_at', { ascending: false })
       .limit(20),
     // 過去30日の回答日時（日別グラフ用）
     svc.from('answer_logs')
-      .select('created_at, user_id')
-      .gte('created_at', d30)
-      .order('created_at', { ascending: true }),
+      .select('answered_at, user_id')
+      .gte('answered_at', d30)
+      .order('answered_at', { ascending: true }),
     // 過去30日のユーザー登録日（登録推移用）
     svc.from('profiles')
       .select('created_at')
@@ -78,8 +79,8 @@ export async function GET(req: NextRequest) {
       .order('created_at', { ascending: true }),
     // 時間帯別（直近7日）
     svc.from('answer_logs')
-      .select('created_at')
-      .gte('created_at', d7),
+      .select('answered_at')
+      .gte('answered_at', d7),
   ])
 
   // ── 集計 ─────────────────────────────────────────────────────
@@ -120,7 +121,7 @@ export async function GET(req: NextRequest) {
   const dailyAnswerMap: Record<string, number> = {}
   const dailyUserMap: Record<string, Set<string>> = {}
   dailyAnswerRaw?.forEach(row => {
-    const d = toJSTDate(row.created_at)
+    const d = toJSTDate(row.answered_at)
     dailyAnswerMap[d] = (dailyAnswerMap[d] ?? 0) + 1
     if (!dailyUserMap[d]) dailyUserMap[d] = new Set()
     dailyUserMap[d].add(row.user_id)
@@ -152,7 +153,7 @@ export async function GET(req: NextRequest) {
   // 時間帯別集計（JST、0-23時）
   const hourMap: Record<number, number> = {}
   hourRaw?.forEach(row => {
-    const h = new Date(new Date(row.created_at).getTime() + 9 * 3600_000).getUTCHours()
+    const h = new Date(new Date(row.answered_at).getTime() + 9 * 3600_000).getUTCHours()
     hourMap[h] = (hourMap[h] ?? 0) + 1
   })
   const hourlyActivity = Array.from({ length: 24 }, (_, h) => ({

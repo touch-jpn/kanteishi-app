@@ -20,7 +20,7 @@ interface Stats {
   avgScore:      number | null
   topMissed:     { word: string; count: number }[]
   topQuestions:  { slug: string; count: number }[]
-  recentAnswers: { question_slug: string; score: number | null; created_at: string }[]
+  recentAnswers: { question_slug: string; score: number | null; answered_at: string }[]
   dailyActivity: DayPoint[]
   dailySignups:  SignupPoint[]
   hourlyActivity: HourPoint[]
@@ -336,7 +336,7 @@ export default function AdminPage() {
             <p className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wide">直近の回答</p>
             <div className="bg-white border border-gray-200 rounded-xl shadow-sm divide-y divide-gray-100">
               {stats.recentAnswers.map((r, i) => {
-                const d = new Date(r.created_at)
+                const d = new Date(r.answered_at)
                 const jst = new Date(d.getTime() + 9 * 3600_000)
                 const label = jst.toISOString().replace('T', ' ').slice(5, 16)
                 return (
